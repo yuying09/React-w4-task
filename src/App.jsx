@@ -21,26 +21,32 @@ const apiPath=import.meta.env.VITE_API_PATH;
     
   }
 
- const getProducts =async()=>{
-  try {
-    const res = axios.get(`${baseUrl}/v2/api/${apiPath}/products`);
-    setProducts(res.data.products)
-  } catch (error) {
-    console.error("資料取得失敗");
-  }
- }
 
- const handleLogin = async()=>{
+const getProducts =async()=>{
   try {
-    const res = axios.post(`${baseUrl}/v2/admin/signin`, account);
-    setIsAuth(true);
-    const {token,expired}=res.data;
-    document.cookie=`token=${token}; expires=${expired}`;
-    getProducts();
-  } catch (error) {
-    alert("登入失敗，請重試")
+    const res = await axios.get(`${baseUrl}/v2/api/${apiPath}/products`);
+    setProducts(res.data.products);
+  } catch (err) {
+    console.log("資料取得失敗");
   }
- }
+}
+
+  const handleLogin = async(e)=>{
+    e.preventDefault();
+    try {
+      const res =await axios.post(`${baseUrl}/v2/admin/signin`,account);
+      setIsAuth(true);
+      const{token,expired}=res.data;
+      document.cookie=`token=${token};expires=${new Date (expired)}`;
+      axios.defaults.headers.common[`Authorization`]=token;
+      getProducts()
+    } catch (error) {
+      alert("登入失敗請重試")
+    }
+  }
+
+
+
   const checkLogin =async()=>{
     try {
       await axios.post(`${baseUrl}/v2/api/user/check`)
