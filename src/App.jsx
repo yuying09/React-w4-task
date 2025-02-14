@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { toFormData } from "axios";
 import { useEffect, useRef, useState } from "react";
 import { Modal } from "bootstrap";
 import { v4 as uuidv4 } from "uuid";
@@ -32,14 +32,14 @@ function App() {
 
   const [isAuth, setIsAuth] = useState(false)
 
-  
+
   const handleInputChange = (e) => {
     const { value, name } = e.target
     setAccount({
       ...account,
       [name]: value
     })
-    
+
   }
 
   const handleLogin = async (e) => {
@@ -77,16 +77,17 @@ function App() {
     checkLogin();
 
   }, []);
-  
+
 
   // 產品相關功能
 
   const [products, setProducts] = useState([])
 
-  const getProducts = async () => {
+  const getProducts = async (page = 1) => {
     try {
-      const res = await axios.get(`${baseUrl}/v2/api/${apiPath}/products`);
+      const res = await axios.get(`${baseUrl}/v2/api/${apiPath}/products?page=${page}`);
       setProducts(res.data.products);
+      setPageInfo(res.data.pagination)
     } catch (err) {
       console.log("資料取得失敗");
     }
@@ -164,7 +165,7 @@ function App() {
     }
   }
 
-  
+
   // 產品modal
 
   const [modalMode, setModalMode] = useState(null);
@@ -255,6 +256,37 @@ function App() {
     })
   }
 
+  //modal上傳圖片
+  const handleFileChange = async(e) => {
+    console.dir(e.target.files);
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('file-to-upload', file);
+    // formData.forEach((value, key) => {
+    //   console.log(`${key}:`, value);
+    // });
+    
+    try {
+      const res = await axios.post(`${baseUrl}/v2/api/${apiPath}/admin/upload`,formData);
+      const uploadImgUrl =res.data.imageUrl;
+      setTempProduct({
+        ...tempProduct,
+        imageUrl: uploadImgUrl
+      })
+    } catch (error) {
+      console.log("上傳失敗");
+      
+    }
+    
+  }
+
+
+  //分頁
+  const [pageInfo, setPageInfo] = useState({});
+
+  const handlePageChange = (page) => {
+    getProducts(page)
+  }
 
   return (
     <>
@@ -295,6 +327,33 @@ function App() {
                 </tbody>
               </table>
             </div>
+            <div className="d-flex justify-content-center">
+              <nav>
+                <ul className="pagination">
+                  <li className={`page-item ${!pageInfo.has_pre && "disabled"}`}>
+                    <a className="page-link" href="#" onClick={() => handlePageChange(pageInfo.current_page - 1)}>
+                      上一頁
+                    </a>
+                  </li>
+                  {/* page-item
+      page-link */}
+                  {Array.from({ length: pageInfo.total_pages }).map((_, index) => (
+                    <li key={index} className={`page-item ${pageInfo.current_page === index + 1 && "active"}`}>
+                      <a className="page-link" href="#" onClick={() => handlePageChange(index + 1)}>
+                        {index + 1}
+                      </a>
+                    </li>))}
+
+
+
+                  <li className={`page-item ${!pageInfo.has_next && "disabled"}`}>
+                    <a className="page-link" href="#" onClick={() => handlePageChange(pageInfo.current_page + 1)}>
+                      下一頁
+                    </a>
+                  </li>
+                </ul>
+              </nav>
+            </div>
           </div>
         </div></>) : (<div className="d-flex flex-column justify-content-center align-items-center vh-100">
           <h1 className="mb-5">請先登入</h1>
@@ -323,6 +382,16 @@ function App() {
             <div className="modal-body p-4">
               <div className="row g-4">
                 <div className="col-md-4">
+                  <div className="mb-5">
+                    <label htmlFor="fileInput" className="form-label"> 圖片上傳 </label>
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png"
+                      className="form-control"
+                      id="fileInput"
+                      onChange={handleFileChange}
+                    />
+                  </div>
                   <div className="mb-4">
                     <label htmlFor="primary-image" className="form-label">
                       主圖
